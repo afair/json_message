@@ -39,6 +39,7 @@ whatever service in your system architecture requires.
 * REST - HTTP Requests in a standard REST format
 * SOAP - Without WS-*
 * Message Queue - Redis, AMQP, PostgreSQL Pub-Sub, etc.
+* XMPP - Or other messaging protocols
 * RPC - Remote Procedure Call
 * XHR (XmlHttpRequest) from browsers
 

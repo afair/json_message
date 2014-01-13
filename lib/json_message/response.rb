@@ -4,7 +4,7 @@ require 'json'
 # response = {
 #   meta: {
 #     version:        "",
-#     requestId:      "uuid",
+#     id:             "uuid",
 #     status:         "success|error|exception|defer",
 #     headers:        {status:200, message:"200 Ok", location:"", $header:""},
 #     execution:      {mode:"async|block|reactor", priority:50
@@ -28,32 +28,33 @@ require 'json'
 ################################################################################
 module JsonMessage
   class Response
+
+    # Params: hash of optional parts:
+    #   meta:{}, # status, message, errors here or on base
+    #   status:"sucess|error|exception|defer",
+    #   message:"User message",
+    #   errors:{"field"=>"Error Message"}
+    #   and any result key/value pairs (post:{row}, links:{info}
     def initialize(params={})
-      @d = params
       setup_meta(params)
-      setup_job(params.delete(:request))
-      setup_execution
+      @d.merge!(params)
     end
 
   private
 
     def setup_meta(params)
-      @d[:meta]          ||= params.delete(:meta) || {}
-      @d[:meta][:status] ||= 'success'
-      @d[:meta][:message]||= ''
-      @d[:meta][:errors] ||= {}
-    end
-
-    def setup_job(request)
-      @d[:meta][:request_id] = request.request_id
-      @d[:meta][:execution]  = request.execution
-    end
-
-    def setup_execution
-      @d[:meta][:execution] ||= {}
-      @d[:meta][:execution][:requested] ||= Time.now.to_f
-      @d[:meta][:execution][:started]   ||= Time.now.to_f
-      @d[:meta][:execution][:completed] ||= Time.now.to_f
+      @d = {meta:params.delete(:meta) || {}}
+      @d[:meta].merge!(
+        status:    params.delete(:status) || 'success',
+        message:   params.delete(:message)|| '',
+        errors:    params.delete(:errors) || {},
+        execution: {}
+      )
+      if r = params.delete(:request)
+        @d[:meta][:id]        ||= r.request_id
+        @d[:meta][:execution] ||= r.execution
+        @d[:meta][:execution][:completed] ||= Time.now.to_f
+      end
     end
   
   public
@@ -69,34 +70,11 @@ module JsonMessage
       @d[:meta].fetch(:authentication, {})
     end
 
-    # params: {mode:"async|block|evented|promise", priority:50
-    #          at:0, by:0, attempts:0, timeout=0 requested:0 }
-    def execution=(params)
-      @d[:meta][:execution] = params
-    end
-
-    def authenication
-      @d[:meta].fetch(:authentication, {})
-    end
-
-    # {method:"password", user:"name", password:"secret"}
-    def authenication=(params)
-      @d[:meta][:authentication] = params
-    end
-
     def pagination
       @d[:meta].fetch(:pagination, {})
     end
 
-    def response_to
-      @d[:meta].fetch(:response, nil)
-    end
-
-    def response_to=(url)
-      @d[:meta][:response] = url
-    end
-
-    # {page:1, size:10, limit:1000}
+    # {page:1, size:10, limit:1000, items:123}
     def pagination=(params)
       @d[:meta][:pagination] = params
     end
@@ -149,9 +127,11 @@ module JsonMessage
 
 ################################################################################
 
-    def to_json
-      @d.to_json
+    def to_s
+      JsonMessage::JsonObject.new(@d).to_s
     end
+
+    alias :to_json :to_s
 
     def success?
       @d[:meta][:status] == 'success'

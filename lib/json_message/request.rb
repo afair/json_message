@@ -3,7 +3,7 @@ require 'json'
 ################################################################################
 # request = {
 #   meta: {
-#     jobId:          "uuid",
+#     id:             "uuid",
 #     request:        "queue://$queuename | http://url | mailto://email rpc://url ...",
 #     response:       "queue://$queuename | http://url | mailto://email rpc://url ...",
 #     execution:      {mode:"async|block|evented|promise", priority:50
@@ -18,73 +18,104 @@ require 'json'
 ################################################################################
 module JsonMessage
   class Request
+
+    # Optional Params key/values:
+    #   meta:{},  # with overrides for id, authentication, etc.
+    #   pagination:{}, 
+    #   envelope:{},
+    #   authentication:{},
+    #   execution:{}
     def initialize(params={})
-      @d = params
       setup_meta
-      setup_execution
+      self.pagination     = params.delete(:pagination)
+      self.envelope       = params.delete(:envelope)
+      self.execution      = params.delete(:execution) if params.has_key?(:execution)
+      self.authentication = params.delete(:authentication)
+      @d.merge!(params)
     end
 
   private
 
     def setup_meta
-      @d[:meta]          ||= {}
-      @d[:meta][:id]     ||= UUID.new.generate
-      @d[:meta][:client] ||= client
+      @d = {meta: {
+              id:        UUID.new.generate,
+              client:    client,
+              execution: {requested:Time.now.to_f}}}
+    end
+
+    def get_meta(key)
+      @d[:meta].fetch(key, {})
+    end
+
+    def set_meta(key, params, *allowed)
+      return meta.delete(key) if params.nil?
+      @d[:meta][key] ||= {}
+      if allowed.size > 0
+        params.delete_if { |k,v| ! allowed.include?(k) }
+      end
+      @d[:meta][key].merge(params)
+    end
+
+  public
+
+    # Meta: holds info about the request
+    def meta
+      @d[:meta]
+    end
+
+    def request_id
+      get_meta(:id)
     end
 
     def client
       "JsonMessage::Request"
     end
 
-    def setup_execution
-      @d[:meta][:execution] ||= {}
-      @d[:meta][:execution][:requested] ||= Time.now.to_f
-    end
-
-  public
-    def meta
-      @d[:meta]
-    end
-
-
-    def request_id
-      @d[:meta][:id]
-    end
-
-    def execution
-      @d[:meta].fetch(:authentication, {})
-    end
-
-    # params: {mode:"async|block|evented|promise", priority:50
+    # Execution: {mode:"async|block|evented|promise", priority:50
     #          at:0, by:0, attempts:0, timeout=0 requested:0 }
+    def execution
+      get_meta(:execution)
+    end
+
     def execution=(params)
-      @d[:meta][:execution] = params
+      set_meta(:execution, params, :mode, :priority, :at, :by, :attempts,
+               :timeout, :requested, :started, :completed)
     end
 
-    def authenication
-      @d[:meta].fetch(:authentication, {})
+    # Authentication: {method:"password", user:"name", password:"secret"}
+    def authentication
+      get_meta(:authentication)
     end
 
-    # {method:"password", user:"name", password:"secret"}
-    def authenication=(params)
-      @d[:meta][:authentication] = params
+    def authentication=(params)
+      set_meta(:authentication, params)
     end
 
+    # Pagination: {page:1, size:10, limit:1000}
     def pagination
-      @d[:meta].fetch(:pagination, {})
+      get_meta(:pagination)
     end
 
+    def pagination=(params)
+      set_meta(:pagination, params, :page, :size, :limit)
+    end
+
+    # Envelope: context of origination request (like SMTP)
+    def envelope
+      get_meta(:envelope)
+    end
+
+    def envelope=(params)
+      set_meta(:envelope, params)
+    end
+
+    # Response: url/location to send response object
     def response_to
-      @d[:meta].fetch(:response, nil)
+      get_meta(:response)
     end
 
     def response_to=(url)
-      @d[:meta][:response] = url
-    end
-
-    # {page:1, size:10, limit:1000}
-    def pagination=(params)
-      @d[:meta][:pagination] = params
+      meta[:response] = url
     end
 
 ################################################################################
@@ -136,10 +167,11 @@ module JsonMessage
 
 ################################################################################
 
-    def to_json
-      ## Camelcase keys....
-      @d.to_json
+    def to_s
+      JsonMessage::JsonObject.new(@d).to_s
     end
+
+    alias :to_json :to_s
 
     def start
       @d[:meta][:execution][:started]    = Time.now.to_f
@@ -148,6 +180,7 @@ module JsonMessage
     end
 
     def response(status='success', message='', result={})
+      #self.execution = {completed: Time.now.to_f}
       @d[:meta][:execution][:completed]  = Time.now.to_f
       JsonMessage::Response.new({ request:self,
                                   meta:{status:status, message:message}
