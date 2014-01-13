@@ -40,7 +40,7 @@ module JsonMessage
       @d[:meta][:execution] ||= {}
       @d[:meta][:execution][:requested] ||= Time.now.to_f
     end
-  
+
   public
     def meta
       @d[:meta]
@@ -129,6 +129,7 @@ module JsonMessage
     def method
       @d.fetch(:method, nil)
     end
+
     def method=(m)
       @d[:method] = m
     end
@@ -146,9 +147,9 @@ module JsonMessage
       @d[:meta][:execution][:attempts]  += 1
     end
 
-    def response(status, message, result={})
+    def response(status='success', message='', result={})
       @d[:meta][:execution][:completed]  = Time.now.to_f
-      JsonRequest::Response.new({ request:self,
+      JsonMessage::Response.new({ request:self,
                                   meta:{status:status, message:message}
                                 }.merge(result))
     end

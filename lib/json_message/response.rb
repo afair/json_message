@@ -4,7 +4,7 @@ require 'json'
 # response = {
 #   meta: {
 #     version:        "",
-#     jobId:          "uuid",
+#     requestId:      "uuid",
 #     status:         "success|error|exception|defer",
 #     headers:        {status:200, message:"200 Ok", location:"", $header:""},
 #     execution:      {mode:"async|block|reactor", priority:50
@@ -30,7 +30,7 @@ module JsonMessage
   class Response
     def initialize(params={})
       @d = params
-      setup_meta
+      setup_meta(params)
       setup_job(params.delete(:request))
       setup_execution
     end
@@ -45,8 +45,8 @@ module JsonMessage
     end
 
     def setup_job(request)
-      @d[:meta][:job_id]    = request.request_id
-      @d[:meta][:execution] = request.execution
+      @d[:meta][:request_id] = request.request_id
+      @d[:meta][:execution]  = request.execution
     end
 
     def setup_execution
@@ -60,7 +60,6 @@ module JsonMessage
     def meta
       @d[:meta]
     end
-
 
     def request_id
       @d[:meta][:id]
@@ -152,6 +151,10 @@ module JsonMessage
 
     def to_json
       @d.to_json
+    end
+
+    def success?
+      @d[:meta][:status] == 'success'
     end
 
   end

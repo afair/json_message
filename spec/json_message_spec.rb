@@ -15,11 +15,17 @@ describe JsonMessage do
   end
 
   it "creates json" do
-    puts request.to_json
     JSON.parse(request.to_json).class.should == Hash
   end
 
   it "generates a response" do
-    request.response.shoud == JsonMessage::Request
+    r = request.response
+    r.class.should == JsonMessage::Response
+    r.success?.should == true
   end
+
+  #it "camel cases objects" do
+  #  r = request.resonse('success', '', snake_key:{'space key'=>true}).to_json
+  #  r[:snakeKey][:spaceKey].should == true
+  #end
 end
