@@ -2,6 +2,7 @@ require "json_message/version"
 require "json_message/json_object"
 require "json_message/request"
 require "json_message/response"
+require "json_message/http_request_builder"
 
 module JsonMessage
  

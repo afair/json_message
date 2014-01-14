@@ -42,6 +42,27 @@ whatever service in your system architecture requires.
 * XMPP - Or other messaging protocols
 * RPC - Remote Procedure Call
 * XHR (XmlHttpRequest) from browsers
+* Distributed Processing - Drb, etc.
+
+Here, a "resource" is whatever you like it to be, a REST-ful URL, a
+queue name, or system name. Everything is meant to be optional, so you
+may not even need it.
+
+The "method" can refer to a HTTP verb, or a method name on a class or
+command name.
+
+The "id" refers to any specific item identifier if known.
+
+The "args" are like the arguments to the method call. If you are sending
+it as an HTTP request, this would hold the list of bodies (form data,
+files, etc.). 
+
+The request can be used in different paradigms and service types.
+
+    Resource.find(id).method(*args)           # Object-Oriented
+    METHOD http://resource/id + [{form-data}] # REST/HTTP
+    POST url + {request-params}               # SOAP/HTTP
+    {method:name,params:[args],id:123}        # JSON-RPC
 
 If a response is returned, it can be generated from the request or on
 its own.
@@ -52,6 +73,13 @@ its own.
     response = JsonMessage::Response(
                  meta:{status:'success', message:'Okay'},
                  post:{title:"Hello"})
+
+You can convert the request into HTTP values to send via your favorite
+HTTP client library.
+
+    http_request = request.to_http(base:"http://example.com")
+    http.headers   #=> {...}
+    http.url       #=> http://example.com/accounts/1
 
 ## Contributing
 

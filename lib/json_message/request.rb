@@ -83,7 +83,9 @@ module JsonMessage
                :timeout, :requested, :started, :completed)
     end
 
-    # Authentication: {method:"password", user:"name", password:"secret"}
+    # Authentication: 
+    #   {method:"password", user:"name", password:"secret"}
+    #   {method:"key", key:"secret"}
     def authentication
       get_meta(:authentication)
     end
@@ -187,6 +189,10 @@ module JsonMessage
         { request:self,
           meta:{status:status, message:message}
         }.merge(result))
+    end
+
+    def to_http(options={})
+      JsonMessage::HttpRequestBuilder.new(self, options)
     end
 
   end
