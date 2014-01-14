@@ -26,7 +26,7 @@ module JsonMessage
     #   authentication:{},
     #   execution:{}
     def initialize(params={})
-      setup_meta
+      setup_meta(params.delete(:meta))
       self.pagination     = params.delete(:pagination)
       self.envelope       = params.delete(:envelope)
       self.execution      = params.delete(:execution) if params.has_key?(:execution)
@@ -36,11 +36,12 @@ module JsonMessage
 
   private
 
-    def setup_meta
-      @d = {meta: {
+    def setup_meta(meta=nil)
+      @d = {meta:meta||{}}
+      @d[:meta].merge!(
               id:        UUID.new.generate,
               client:    client,
-              execution: {requested:Time.now.to_f}}}
+              execution: {requested:Time.now.to_f})
     end
 
     def get_meta(key)
@@ -53,7 +54,7 @@ module JsonMessage
       if allowed.size > 0
         params.delete_if { |k,v| ! allowed.include?(k) }
       end
-      @d[:meta][key].merge(params)
+      @d[:meta][key].merge!(params)
     end
 
   public
@@ -180,11 +181,12 @@ module JsonMessage
     end
 
     def response(status='success', message='', result={})
-      #self.execution = {completed: Time.now.to_f}
-      @d[:meta][:execution][:completed]  = Time.now.to_f
-      JsonMessage::Response.new({ request:self,
-                                  meta:{status:status, message:message}
-                                }.merge(result))
+      start unless @d[:meta][:execution][:started]
+      self.execution = {completed: Time.now.to_f}
+      JsonMessage::Response.new(
+        { request:self,
+          meta:{status:status, message:message}
+        }.merge(result))
     end
 
   end

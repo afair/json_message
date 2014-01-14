@@ -79,51 +79,6 @@ module JsonMessage
       @d[:meta][:pagination] = params
     end
 
-################################################################################
-
-    def resource
-      @d.fetch(:resource, nil)
-    end
-
-    def resource=(url)
-      @d[:resource] = url
-    end
-
-
-    def id
-      @d.fetch(:id, nil)
-    end
-
-    def id=(id)
-      @d[:id] = id
-    end
-
-
-    def args
-      @d.fetch(:args, nil)
-    end
-
-    def args=(*arr)
-      @d[:args] = arr
-    end
-
-
-    def options
-      @d.fetch(:options, {})
-    end
-
-    def options=(hash)
-      @d[:options] = hash
-    end
-
-
-    #alias :omethod :method
-    def method
-      @d.fetch(:method, nil)
-    end
-    def method=(m)
-      @d[:method] = m
-    end
 
 ################################################################################
 
